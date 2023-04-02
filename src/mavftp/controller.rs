@@ -133,15 +133,9 @@ impl Controller {
         message: &mavlink::common::FILE_TRANSFER_PROTOCOL_DATA,
     ) -> Option<mavlink::common::MavMessage> {
         self.waiting = false;
-        let payload = &message.payload;
-        let opcode = payload[3];
-
-        let opcode = MavlinkFtpOpcode::from_u8(opcode).unwrap();
-
-        match opcode {
+        let payload = MavlinkFtpPayload::from_bytes(&message.payload).unwrap();
+        match payload.opcode {
             MavlinkFtpOpcode::Ack => {
-                let payload = MavlinkFtpPayload::from_bytes(&payload).unwrap();
-
                 match &mut self.status {
                     Some(OperationStatus::Reset) => {
                         if payload.req_opcode == MavlinkFtpOpcode::ResetSessions {
@@ -289,19 +283,13 @@ impl Controller {
                             //std::io::stdout().write_all(&status.content).unwrap();
                             self.waiting = false;
                             self.status = None;
-                            let mut buffer = Vec::new();
 
+                            // Lets get the crc
+                            let mut buffer = Vec::new();
                             let mut file = std::fs::File::open("/tmp/potato2").unwrap();
                             file.read_to_end(&mut buffer).unwrap();
                             let crc = mavlink_crc32(&buffer);
-                            dbg!("Done!!");
                             println!("{:08x}", crc);
-                            //let mut hasher = Sha1::new();
-                            //dbg!(&status.content.len());
-                            //hasher.update(&status.content);
-                            //println!("{:x?}", hasher.finalize());
-                            //let mut f = std::fs::File::create("/tmp/potato").ok().unwrap();
-                            //f.write_all(&status.content);
                             return None;
                         }
                     }
@@ -309,13 +297,34 @@ impl Controller {
                 }
             }
             MavlinkFtpOpcode::Nak => {
-                let nak_code = MavlinkFtpNak::from_u8(payload[12]).unwrap();
+                let nak_code = MavlinkFtpNak::from_u8(payload.data[0]).unwrap();
 
                 match nak_code {
                     MavlinkFtpNak::EOF => {
-                        exit(0);
                         // We finished the current operation
-                        dbg!(&self.entries);
+                        match &payload.req_opcode {
+                            MavlinkFtpOpcode::ListDirectory => {
+                                //dbg!(&self.entries);
+                                println!("{:<4} {:<30} {:<10}", "Type", "Name", "Size");
+                                println!("{}", "-".repeat(40));
+                                self.entries.sort_by(|a, b| a.name.partial_cmp(&b.name).unwrap());
+                                for entry in &self.entries {
+                                    let item_type = match entry.entry_type {
+                                        EntryType::File => 'F',
+                                        EntryType::Directory => 'D',
+                                        EntryType::Skip => 'S',
+                                    };
+                                    println!(
+                                        "{:<4} {:<30} {:<10}",
+                                        item_type,
+                                        entry.name,
+                                        format_size(entry.size as u64)
+                                    );
+                                }
+                            }
+                            _ => {}
+                        }
+                        exit(0);
                         self.status = None;
                         return None;
                     }
@@ -332,5 +341,19 @@ impl Controller {
         }
 
         return None;
+    }
+}
+
+fn format_size(size: u64) -> String {
+    const KILO: u64 = 1024;
+    const MEGA: u64 = KILO * 1024;
+    const GIGA: u64 = MEGA * 1024;
+
+    match size {
+        0 => String::new(),
+        1..=KILO => format!("{} B", size),
+        KILO..=MEGA => format!("{:.1} KB", (size as f64) / (KILO as f64)),
+        MEGA..=GIGA => format!("{:.1} MB", (size as f64) / (MEGA as f64)),
+        _ => format!("{:.1} GB", (size as f64) / (GIGA as f64)),
     }
 }
