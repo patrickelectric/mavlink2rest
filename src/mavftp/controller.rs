@@ -9,7 +9,7 @@ use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use sha1::{Digest, Sha1};
 
 use std::fs::OpenOptions;
-use std::io::{Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom};
 
 enum OperationStatus {
     ScanningFolder(ScanningFolderStatus),
@@ -288,14 +288,20 @@ impl Controller {
                         } else {
                             //std::io::stdout().write_all(&status.content).unwrap();
                             self.waiting = false;
+                            self.status = None;
+                            let mut buffer = Vec::new();
+
+                            let mut file = std::fs::File::open("/tmp/potato2").unwrap();
+                            file.read_to_end(&mut buffer).unwrap();
+                            let crc = mavlink_crc32(&buffer);
                             dbg!("Done!!");
+                            println!("{:08x}", crc);
                             //let mut hasher = Sha1::new();
                             //dbg!(&status.content.len());
                             //hasher.update(&status.content);
                             //println!("{:x?}", hasher.finalize());
                             //let mut f = std::fs::File::create("/tmp/potato").ok().unwrap();
                             //f.write_all(&status.content);
-                            self.status = None;
                             return None;
                         }
                     }
