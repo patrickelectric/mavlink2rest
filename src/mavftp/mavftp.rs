@@ -135,10 +135,7 @@ pub struct MavlinkFtpPayload {
 }
 
 impl MavlinkFtpPayload {
-    pub fn newResetSesions(
-        seq_number: u16,
-        session: u8,
-    ) -> Self {
+    pub fn newResetSesions(seq_number: u16, session: u8) -> Self {
         Self {
             seq_number,
             session,
@@ -152,10 +149,7 @@ impl MavlinkFtpPayload {
         }
     }
 
-    pub fn newTerminateSession(
-        seq_number: u16,
-        session: u8,
-    ) -> Self {
+    pub fn newTerminateSession(seq_number: u16, session: u8) -> Self {
         Self {
             seq_number,
             session,
@@ -169,12 +163,7 @@ impl MavlinkFtpPayload {
         }
     }
 
-    pub fn newListDirectory(
-        seq_number: u16,
-        session: u8,
-        offset: u32,
-        path: &str,
-    ) -> Self {
+    pub fn newListDirectory(seq_number: u16, session: u8, offset: u32, path: &str) -> Self {
         Self {
             seq_number,
             session,
@@ -188,11 +177,7 @@ impl MavlinkFtpPayload {
         }
     }
 
-    pub fn newOpenFile(
-        seq_number: u16,
-        session: u8,
-        path: &str,
-    ) -> Self {
+    pub fn newOpenFile(seq_number: u16, session: u8, path: &str) -> Self {
         Self {
             seq_number,
             session,
@@ -206,12 +191,7 @@ impl MavlinkFtpPayload {
         }
     }
 
-    pub fn newReadFile(
-        seq_number: u16,
-        session: u8,
-        offset: u32,
-        size_left: usize,
-    ) -> Self {
+    pub fn newReadFile(seq_number: u16, session: u8, offset: u32, size_left: usize) -> Self {
         Self {
             seq_number,
             session,
@@ -225,23 +205,19 @@ impl MavlinkFtpPayload {
         }
     }
 
-    pub fn newCalcFileCRC32(
-        seq_number: u16,
-        session: u8,
-        path: &str,
-    ) -> Self {
-    Self {
-        seq_number,
-        session,
-        opcode: MavlinkFtpOpcode::CalcFileCRC32,
-        size: path.len(),
-        req_opcode: MavlinkFtpOpcode::None,
-        burst_complete: 0,
-        padding: 0,
-        offset: 0,
-        data: path.as_bytes().to_vec(),
+    pub fn newCalcFileCRC32(seq_number: u16, session: u8, path: &str) -> Self {
+        Self {
+            seq_number,
+            session,
+            opcode: MavlinkFtpOpcode::CalcFileCRC32,
+            size: path.len(),
+            req_opcode: MavlinkFtpOpcode::None,
+            burst_complete: 0,
+            padding: 0,
+            offset: 0,
+            data: path.as_bytes().to_vec(),
+        }
     }
-}
 
     /*
     opcode: MavlinkFtpOpcode,

@@ -16,7 +16,7 @@ enum OperationStatus {
     OpeningFile(OpeningFileStatus),
     ReadingFile(ReadingFileStatus),
     Reset,
-    CalcFileCRC32(CalcFileCRC32Status)
+    CalcFileCRC32(CalcFileCRC32Status),
 }
 
 struct ScanningFolderStatus {
@@ -92,10 +92,7 @@ impl Controller {
         self.waiting = true;
         match &self.status {
             Some(OperationStatus::Reset) => {
-                return Some(MavlinkFtpPayload::newResetSesions(
-                    1,
-                    self.session,
-                ));
+                return Some(MavlinkFtpPayload::newResetSesions(1, self.session));
             }
             Some(OperationStatus::ScanningFolder(status)) => {
                 return Some(MavlinkFtpPayload::newListDirectory(
@@ -185,7 +182,8 @@ impl Controller {
                                         self.session,
                                         status.offset as u32,
                                         &status.path,
-                                    ).to_bytes(),
+                                    )
+                                    .to_bytes(),
                                 },
                             ));
                         }
@@ -217,7 +215,8 @@ impl Controller {
                             file: OpenOptions::new()
                                 .write(true)
                                 .create(true)
-                                .open("/tmp/potato2").unwrap(),
+                                .open("/tmp/potato2")
+                                .unwrap(),
                         }));
 
                         return None;
@@ -233,10 +232,13 @@ impl Controller {
                             println!("0x{:x?}", crc);
                             exit(0);
                         }
-                    },
+                    }
                     Some(OperationStatus::ReadingFile(status)) => {
                         let chunk = &payload.data;
-                        status.file.seek(SeekFrom::Start(payload.offset.into())).unwrap();
+                        status
+                            .file
+                            .seek(SeekFrom::Start(payload.offset.into()))
+                            .unwrap();
                         status.file.write_all(chunk).unwrap();
                         status.offset = payload.offset + payload.size as u32;
                         if let Some(progress) = &self.progress {
@@ -255,7 +257,8 @@ impl Controller {
                                         self.session,
                                         status.offset,
                                         usize::MAX,
-                                    ).to_bytes(),
+                                    )
+                                    .to_bytes(),
                                 },
                             ));
                         }
