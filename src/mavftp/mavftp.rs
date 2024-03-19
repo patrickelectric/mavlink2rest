@@ -110,7 +110,7 @@ pub fn parse_directory_entry(entry: &str) -> Result<EntryInfo, &'static str> {
     })
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MavlinkFtpPayload {
     // Sequence number for message (0 - 65535)
     pub seq_number: u16,

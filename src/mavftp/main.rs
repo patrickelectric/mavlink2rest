@@ -33,8 +33,8 @@ fn main() {
         let vehicle = sender.clone();
         move || loop {
             let res = vehicle.send_default(&heartbeat_message());
-            if res.is_ok() {
-                thread::sleep(Duration::from_secs(1));
+            if ! res.is_ok() {
+                dbg!("Failed to send heartbeat");
             }
             thread::sleep(Duration::from_secs(1));
         }

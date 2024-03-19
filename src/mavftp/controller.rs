@@ -280,6 +280,9 @@ impl Controller {
                             ));
                              */
                         } else {
+                            if let Some(progress) = &self.progress {
+                                progress.finish();
+                            }
                             //std::io::stdout().write_all(&status.content).unwrap();
                             self.waiting = false;
                             self.status = None;
