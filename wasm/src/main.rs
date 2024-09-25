@@ -1,7 +1,9 @@
 use wasm::App;
 
-// #[tokio::main(flavor = "current_thread")]
-fn main() -> eframe::Result<()> {
+use tokio_with_wasm::alias as tokio;
+
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> eframe::Result<()> {
     let app = App::default();
     /*
     let native_options = eframe::NativeOptions::default();
