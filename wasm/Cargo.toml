@@ -3,9 +3,8 @@ name = "wasm"
 version = "0.1.0"
 edition = "2021"
 
-[package.metadata.docs.rs]
-all-features = true
-targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 chrono = "0.4"
@@ -19,7 +18,26 @@ eframe = { version = "0.27.0", default-features = false, features = [
 humantime = "2.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "1", features = ["full"] }
+# tokio = { version = "1", features = ["full"] }
 #tungstenite = "0.24"
-ewebsock = "0.6.0"
+ewebsock = { version = "0.6.0", features = [] }
 url = "2.5"
+
+tokio = { version = "1", features = [
+    "rt",
+    "rt-multi-thread",
+    "sync",
+    "time",
+    "macros"
+]}
+tokio_with_wasm = { version = "0.7.1", features = [
+    "rt",
+    "rt-multi-thread",
+    "sync",
+    "time",
+    "macros",
+]}
+
+[dependencies.getrandom]
+version = "*"
+features = ["js"]
