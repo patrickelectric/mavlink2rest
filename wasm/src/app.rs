@@ -2,8 +2,8 @@ use chrono::prelude::*;
 use humantime::format_duration;
 
 use tokio_with_wasm::alias as tokio;
-use tokio::runtime::Runtime;
-use tokio::sync::mpsc;
+// use tokio::runtime::Runtime;
+use std::sync::mpsc;
 // use tokio::runtime::Runtime;
 // use tokio::sync::mpsc;
 use ewebsock::connect;
@@ -27,41 +27,22 @@ pub struct App {
     vehicles: BTreeMap<u8, BTreeMap<u8, BTreeMap<String, MessageInfo>>>,
 }
 
-impl Default for App {
-    fn default() -> Self {
-        let (tx, rx) = mpsc::channel(32);
+impl App {
+    pub fn new(rx: mpsc::Receiver<String>) -> Self {
+        /*
         std::thread::spawn(move || {
-            let rt = Runtime::new().unwrap();
+            //TODO: Use multthread runtime if running in desktop
+            let rt = tokio::runtime::Builder::new_current_thread().build().unwrap();
             rt.block_on(async move {
                 println!("Connect!");
                 connect_and_receive_messages(tx).await;
                 println!("Done!");
             });
         });
+         */
         Self {
             receiver: rx,
             vehicles: Default::default(),
-        }
-    }
-}
-
-// todo: We need a better WS handler, maybe an abstraction over two different ws implementations
-async fn connect_and_receive_messages(mut tx: mpsc::Sender<String>) {
-    let (mut sender, receiver) = {
-        let url = Url::parse("ws://192.168.31.11:6040/ws/mavlink").unwrap().to_string();
-        connect(url, ewebsock::Options::default()).expect("Can't connect")
-    };
-    println!("Waiting...");
-    loop {
-        while let Some(message) = receiver.try_recv() {
-            println!("message: {message:#?}");
-            if let ewebsock::WsEvent::Message(message) = message {
-                if let ewebsock::WsMessage::Text(message) = message {
-                    tx.send(message)
-                        .await
-                        .unwrap();
-                }
-            }
         }
     }
 }
