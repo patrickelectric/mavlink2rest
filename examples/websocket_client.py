@@ -3,12 +3,30 @@ import argparse
 import asyncio
 import aiohttp
 
-
 async def start_client(url: str) -> None:
     ws = await aiohttp.ClientSession().ws_connect(url, autoclose=False, autoping=False)
-
+    test = 0
     async def dispatch():
         while True:
+            test += 1
+            await ws.send_str('''{
+  "header": {
+    "system_id": 255,
+    "component_id": 240,
+    "sequence": {test}
+  },
+  "message": {
+    "type":"COMMAND_LONG",
+    "param1": 1.0,
+    "param2": 0.0,"param3":0.0,"param4":0.0,"param5":0.0,"param6":0.0,"param7":0.0,
+    "command": {
+      "type": "MAV_CMD_COMPONENT_ARM_DISARM"
+    },
+    "target_system": 1,
+    "target_component": 1,
+    "confirmation": 1
+  }
+}''')
             msg = await ws.receive()
 
             if msg.type == aiohttp.WSMsgType.TEXT:
@@ -46,7 +64,7 @@ ARGS.add_argument(
     "--url",
     action="store",
     dest="url",
-    default="http://blueos.local:6040",
+    default="http://0.0.0.0:8088/",
     help="Websocket address, follow the format: http://0.0.0.0:8088",
 )
 

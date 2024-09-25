@@ -1,12 +1,26 @@
+use chrono::prelude::*;
+use humantime::format_duration;
 use tokio::runtime::Runtime;
 use tokio::sync::mpsc;
-use tungstenite::connect;
+use ewebsock::connect;
 use url::Url;
 use std::collections::BTreeMap;
 
+struct MessageInfo {
+    value: serde_json::Value,
+    previous_value: Option<serde_json::Value>,
+    last_sample_time: DateTime<chrono::Utc>,
+}
+
+impl MessageInfo {
+    pub fn update(&mut self, value: serde_json::Value) {
+
+    }
+}
+
 struct App {
     receiver: mpsc::Receiver<String>,
-    vehicles: BTreeMap<u8, BTreeMap<u8, BTreeMap<String, serde_json::Value>>>,
+    vehicles: BTreeMap<u8, BTreeMap<u8, BTreeMap<String, MessageInfo>>>,
 }
 
 impl Default for App {
@@ -15,7 +29,9 @@ impl Default for App {
         std::thread::spawn(move || {
             let rt = Runtime::new().unwrap();
             rt.block_on(async move {
+                println!("Connect!");
                 connect_and_receive_messages(tx).await;
+                println!("Done!");
             });
         });
         Self {
@@ -25,15 +41,22 @@ impl Default for App {
     }
 }
 
+// todo: We need a better WS handler, maybe an abstraction over two different ws implementations
 async fn connect_and_receive_messages(mut tx: mpsc::Sender<String>) {
-    let (mut socket, _response) =
-        connect(Url::parse("wss://192.168.31.63:6040/ws/mavlink").unwrap()).expect("Can't connect");
+    let (mut sender, receiver) = {
+        let url = Url::parse("ws://192.168.31.11:6040/ws/mavlink").unwrap().to_string();
+        connect(url, ewebsock::Options::default()).expect("Can't connect")
+    };
 
-    while let Ok(message) = socket.read() {
-        if message.is_text() {
-            tx.send(message.to_text().unwrap().to_string())
-                .await
-                .unwrap();
+    loop {
+        while let Some(message) = receiver.try_recv() {
+            if let ewebsock::WsEvent::Message(message) = message {
+                if let ewebsock::WsMessage::Text(message) = message {
+                    tx.send(message)
+                        .await
+                        .unwrap();
+                }
+            }
         }
     }
 }
@@ -41,9 +64,10 @@ async fn connect_and_receive_messages(mut tx: mpsc::Sender<String>) {
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ctx.request_repaint();
+            print!(".");
             ui.label("Potato");
             while let Ok(message) = self.receiver.try_recv() {
+                println!("{message:#?}");
                 let Ok(message) = serde_json::from_str::<serde_json::Value>(&message) else {
                     continue;
                 };
@@ -56,7 +80,16 @@ impl eframe::App for App {
                 if !self.vehicles[&system_id].contains_key(&component_id) {
                     self.vehicles.get_mut(&system_id).unwrap().insert(component_id, Default::default());
                 }
-                self.vehicles.get_mut(&system_id).unwrap().get_mut(&component_id).unwrap().insert(message_name, message);
+                let previous_message = match self.vehicles.get(&system_id).unwrap().get(&component_id).unwrap().get(&message_name) {
+                    Some(previous_message) => Some(previous_message.value.clone()),
+                    None => None,
+                };
+
+                self.vehicles.get_mut(&system_id).unwrap().get_mut(&component_id).unwrap().insert(message_name, MessageInfo {
+                    value: message,
+                    previous_value: previous_message,
+                    last_sample_time: Utc::now(),
+                });
             }
 
             for (system_id, components) in &self.vehicles {
@@ -65,13 +98,15 @@ impl eframe::App for App {
                         egui::CollapsingHeader::new(format!("Component {component_id}")).default_open(true).show(ui, |ui| {
                             for (name, message) in messages {
                                 ui.collapsing(name, |ui| {
-                                    ui.label(serde_json::to_string_pretty(&message).unwrap());
+                                    ui.label(serde_json::to_string_pretty(&message.value).unwrap());
+                                    ui.label(format_duration((Utc::now() - message.last_sample_time).to_std().unwrap()).to_string() + " Ago");
                                 });
                             }
                         });
                     }
                 });
             }
+            ctx.request_repaint();
         });
     }
 }
