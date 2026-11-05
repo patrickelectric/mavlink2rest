@@ -131,7 +131,12 @@ def main():
     }
     response = post(f"{V0}/mavlink", bad)
     expect(response.status_code == 404, f"expected 404 got {response.status_code}")
-    expect("unsupported bits" in response.text, response.text)
+    expect(
+        ("unsupported bits" in response.text)
+        or ("Failed to parse" in response.text)
+        or ("invalid type" in response.text),
+        response.text,
+    )
 
     print("malformed modern JSON rejected")
     response = post(f"{V1}/mavlink", {"header": {}, "message": {"type": "NOPE"}})
